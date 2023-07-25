@@ -23,7 +23,6 @@ contract MultiProposerableTransactionExecutor {
         uint value;
         bytes data;
         bool executed;
-        uint numConfirmations;
     }
 
     address public owner;
@@ -117,8 +116,7 @@ contract MultiProposerableTransactionExecutor {
                 to: _to,
                 value: _value,
                 data: _data,
-                executed: false,
-                numConfirmations: 0
+                executed: false
             })
         );
 
@@ -174,8 +172,7 @@ contract MultiProposerableTransactionExecutor {
             address to,
             uint value,
             bytes memory data,
-            bool executed,
-            uint numConfirmations
+            bool executed
         )
     {
         Transaction storage transaction = transactions[_txIndex];
@@ -184,8 +181,7 @@ contract MultiProposerableTransactionExecutor {
             transaction.to,
             transaction.value,
             transaction.data,
-            transaction.executed,
-            transaction.numConfirmations
+            transaction.executed
         );
     }
 }
