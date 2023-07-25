@@ -155,10 +155,6 @@ contract MultiProposerableTransactionExecutor {
         return transactionProposers;
     }
 
-    function getOwner() public view returns (address) {
-        return owner;
-    }
-
     function getTransactionCount() public view returns (uint) {
         return transactions.length;
     }
