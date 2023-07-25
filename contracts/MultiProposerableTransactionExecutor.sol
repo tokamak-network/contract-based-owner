@@ -40,7 +40,7 @@ contract MultiProposerableTransactionExecutor {
     modifier onlyOwnerOrTransactionProposer() {
         require(
             isOwner[msg.sender] || isTransactionProposer[msg.sender],
-            "not owner"
+            "not owner or not transactionProposer"
         );
         _;
     }
