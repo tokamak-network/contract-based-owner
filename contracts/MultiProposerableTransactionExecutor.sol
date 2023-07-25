@@ -1,9 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
+interface ITransferOwnership {
+    function transferOwnership(address _owner) external;
+}
+
 contract MultiProposerableTransactionExecutor {
     event Deposit(address indexed sender, uint amount, uint balance);
-    event SubmitTransaction(
+    event ProposeTransaction(
         address indexed owner,
         uint indexed txIndex,
         address indexed to,
@@ -15,8 +19,8 @@ contract MultiProposerableTransactionExecutor {
     address public owner;
     mapping(address => bool) public isOwner;
 
-    address[] public proposers;
-    mapping(address => bool) public isProposer;
+    address[] public transactionProposers;
+    mapping(address => bool) public isTransactionProposer;
 
     struct Transaction {
         address to;
@@ -33,13 +37,11 @@ contract MultiProposerableTransactionExecutor {
         _;
     }
 
-    modifier onlyProposer() {
-        require(isProposer[msg.sender], "not owner");
-        _;
-    }
-
-    modifier onlyOwnerOrProposer() {
-        require(isOwner[msg.sender] || isProposer[msg.sender], "not owner");
+    modifier onlyOwnerOrTransactionProposer() {
+        require(
+            isOwner[msg.sender] || isTransactionProposer[msg.sender],
+            "not owner"
+        );
         _;
     }
 
@@ -62,39 +64,54 @@ contract MultiProposerableTransactionExecutor {
         emit Deposit(msg.sender, msg.value, address(this).balance);
     }
 
-    function addProposer(address _proposer) public onlyOwner {
+    function addTransactionProposer(
+        address _transactionProposer
+    ) public onlyOwner {
         require(
-            isProposer[_proposer] == false && isOwner[_proposer] == false,
-            "is already exist in proposers or is the owner"
+            isTransactionProposer[_transactionProposer] == false &&
+                isOwner[_transactionProposer] == false,
+            "is already exist in transactionProposers or is the owner"
         );
-        isProposer[_proposer] = true;
-        proposers.push(_proposer);
+        isTransactionProposer[_transactionProposer] = true;
+        transactionProposers.push(_transactionProposer);
     }
 
-    function removeProposer(address _proposer) public onlyOwner {
-        require(isProposer[_proposer] == true, "is not exist in proposers");
-        isProposer[_proposer] = false;
+    function removeTransactionProposer(
+        address _transactionProposer
+    ) public onlyOwner {
+        require(
+            isTransactionProposer[_transactionProposer] == true,
+            "is not exist in transactionProposers"
+        );
+        isTransactionProposer[_transactionProposer] = false;
 
-        for (uint i = 0; i < proposers.length - 1; i++) {
-            if (proposers[i] == _proposer) {
-                proposers[i] = proposers[proposers.length - 1];
+        for (uint i = 0; i < transactionProposers.length - 1; i++) {
+            if (transactionProposers[i] == _transactionProposer) {
+                transactionProposers[i] = transactionProposers[
+                    transactionProposers.length - 1
+                ];
                 break;
             }
         }
-        proposers.pop();
+        transactionProposers.pop();
     }
 
     function setOwner(address _owner) public onlyOwner {
+        require(
+            isTransactionProposer[_owner] == false && isOwner[_owner] == false,
+            "is already exist in transactionProposers or is the owner"
+        );
+
         isOwner[owner] = false;
         isOwner[_owner] = true;
         owner = _owner;
     }
 
-    function submitTransaction(
+    function proposeTransaction(
         address _to,
         uint _value,
         bytes memory _data
-    ) public onlyOwnerOrProposer {
+    ) public onlyOwnerOrTransactionProposer {
         uint txIndex = transactions.length;
 
         transactions.push(
@@ -107,7 +124,7 @@ contract MultiProposerableTransactionExecutor {
             })
         );
 
-        emit SubmitTransaction(msg.sender, txIndex, _to, _value, _data);
+        emit ProposeTransaction(msg.sender, txIndex, _to, _value, _data);
     }
 
     function executeTransaction(
@@ -125,8 +142,17 @@ contract MultiProposerableTransactionExecutor {
         emit ExecuteTransaction(msg.sender, _txIndex);
     }
 
-    function getProposers() public view returns (address[] memory) {
-        return proposers;
+    function transferTargetOwnership(
+        address _target,
+        address _owner
+    ) public onlyOwner {
+        ITransferOwnership target = ITransferOwnership(_target);
+
+        target.transferOwnership(_owner);
+    }
+
+    function getTransactionProposers() public view returns (address[] memory) {
+        return transactionProposers;
     }
 
     function getOwner() public view returns (address) {
