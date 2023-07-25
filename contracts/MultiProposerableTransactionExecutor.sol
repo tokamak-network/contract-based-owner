@@ -6,7 +6,7 @@ interface ITransferOwnership {
 }
 
 contract MultiProposerableTransactionExecutor {
-    event Deposit(address indexed sender, uint amount, uint balance);
+    
     event ProposeTransaction(
         address indexed owner,
         uint indexed txIndex,
@@ -59,7 +59,7 @@ contract MultiProposerableTransactionExecutor {
     }
 
     receive() external payable {
-        emit Deposit(msg.sender, msg.value, address(this).balance);
+        revert("cannot receive Ether");
     }
 
     function addTransactionProposer(
