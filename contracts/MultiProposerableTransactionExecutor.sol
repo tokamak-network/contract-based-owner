@@ -17,9 +17,8 @@ contract MultiProposerableTransactionExecutor {
     event ExecuteTransaction(address indexed owner, uint indexed txIndex);
 
     address public owner;
-    mapping(address => bool) public isOwner;
-
     address[] public transactionProposers;
+
     mapping(address => bool) public isTransactionProposer;
 
     struct Transaction {
@@ -33,13 +32,13 @@ contract MultiProposerableTransactionExecutor {
     Transaction[] public transactions;
 
     modifier onlyOwner() {
-        require(isOwner[msg.sender], "not owner");
+        require(owner == msg.sender, "not owner");
         _;
     }
 
     modifier onlyOwnerOrTransactionProposer() {
         require(
-            isOwner[msg.sender] || isTransactionProposer[msg.sender],
+            owner == msg.sender || isTransactionProposer[msg.sender],
             "not owner or not transactionProposer"
         );
         _;
@@ -56,7 +55,6 @@ contract MultiProposerableTransactionExecutor {
     }
 
     constructor(address _owner) {
-        isOwner[_owner] = true;
         owner = _owner;
     }
 
@@ -69,7 +67,7 @@ contract MultiProposerableTransactionExecutor {
     ) public onlyOwner {
         require(
             isTransactionProposer[_transactionProposer] == false &&
-                isOwner[_transactionProposer] == false,
+                owner != _transactionProposer,
             "is already exist in transactionProposers or is the owner"
         );
         isTransactionProposer[_transactionProposer] = true;
@@ -98,12 +96,10 @@ contract MultiProposerableTransactionExecutor {
 
     function setOwner(address _owner) public onlyOwner {
         require(
-            isTransactionProposer[_owner] == false && isOwner[_owner] == false,
+            isTransactionProposer[_owner] == false && owner != _owner,
             "is already exist in transactionProposers or is the owner"
         );
 
-        isOwner[owner] = false;
-        isOwner[_owner] = true;
         owner = _owner;
     }
 
