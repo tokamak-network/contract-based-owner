@@ -6,7 +6,9 @@ interface ITransferOwnership {
 }
 
 contract MultiProposerableTransactionExecutor {
-    
+
+    event Deposit(address indexed sender, uint amount, uint balance);
+
     event ProposeTransaction(
         address indexed owner,
         uint indexed txIndex,
@@ -16,11 +18,6 @@ contract MultiProposerableTransactionExecutor {
     );
     event ExecuteTransaction(address indexed owner, uint indexed txIndex);
 
-    address public owner;
-    address[] public transactionProposers;
-
-    mapping(address => bool) public isTransactionProposer;
-
     struct Transaction {
         address to;
         uint value;
@@ -28,6 +25,11 @@ contract MultiProposerableTransactionExecutor {
         bool executed;
         uint numConfirmations;
     }
+
+    address public owner;
+    address[] public transactionProposers;
+
+    mapping(address => bool) public isTransactionProposer;
 
     Transaction[] public transactions;
 
@@ -59,7 +61,7 @@ contract MultiProposerableTransactionExecutor {
     }
 
     receive() external payable {
-        revert("cannot receive Ether");
+        emit Deposit(msg.sender, msg.value, address(this).balance);
     }
 
     function addTransactionProposer(
@@ -145,6 +147,14 @@ contract MultiProposerableTransactionExecutor {
         ITransferOwnership target = ITransferOwnership(_target);
 
         target.transferOwnership(_owner);
+    }
+
+    function withdrawEther(
+        address account,
+        uint256 value
+    ) external onlyOwner {
+        require(address(this).balance >= value, "contract don't have value");
+        payable(account).transfer(value);
     }
 
     function getTransactionProposers() public view returns (address[] memory) {
