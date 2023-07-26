@@ -5,11 +5,15 @@ async function main() {
     "MultiProposerableTransactionExecutor"
   );
   const multiProposerableTransactionExecutor =
-    await MultiProposerableTransactionExecutor.deploy(
-      String(process.env.MULTI_PROPOSERABLE_TRANSACTION_EXECUTOR_OWNER_ADDRESS)
-    );
+    await MultiProposerableTransactionExecutor.deploy();
 
   await multiProposerableTransactionExecutor.deployed();
+
+  const tx = await multiProposerableTransactionExecutor.transferOwnership(
+    String(process.env.MULTI_PROPOSERABLE_TRANSACTION_EXECUTOR_OWNER_ADDRESS)
+  );
+
+  await tx.wait();
 
   console.log(`deployed to ${multiProposerableTransactionExecutor.address}`);
 }

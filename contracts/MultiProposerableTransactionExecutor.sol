@@ -1,23 +1,25 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+
 interface ITransferOwnership {
     function transferOwnership(address _owner) external;
 }
 
-contract MultiProposerableTransactionExecutor {
+contract MultiProposerableTransactionExecutor is Ownable {
     event Deposit(address indexed sender, uint amount, uint balance);
     event ProposeTransaction(
-        address indexed owner,
+        address indexed transactionProposer,
         uint indexed txIndex,
         address indexed to,
         uint value,
         bytes data
     );
     event ExecuteTransaction(address indexed owner, uint indexed txIndex);
-
-    address public owner;
-    mapping(address => bool) public isOwner;
+    event TransferTargetOwnership(address target, address owner);
+    event AddTransactionProposer(address transactionProposer);
+    event RemoveTransactionProposer(address transactionProposer);
 
     address[] public transactionProposers;
     mapping(address => bool) public isTransactionProposer;
@@ -27,19 +29,13 @@ contract MultiProposerableTransactionExecutor {
         uint value;
         bytes data;
         bool executed;
-        uint numConfirmations;
     }
 
     Transaction[] public transactions;
 
-    modifier onlyOwner() {
-        require(isOwner[msg.sender], "not owner");
-        _;
-    }
-
     modifier onlyOwnerOrTransactionProposer() {
         require(
-            isOwner[msg.sender] || isTransactionProposer[msg.sender],
+            owner() == msg.sender || isTransactionProposer[msg.sender],
             "not owner or not transactionProposer"
         );
         _;
@@ -55,11 +51,6 @@ contract MultiProposerableTransactionExecutor {
         _;
     }
 
-    constructor(address _owner) {
-        isOwner[_owner] = true;
-        owner = _owner;
-    }
-
     receive() external payable {
         emit Deposit(msg.sender, msg.value, address(this).balance);
     }
@@ -68,12 +59,15 @@ contract MultiProposerableTransactionExecutor {
         address _transactionProposer
     ) public onlyOwner {
         require(
-            isTransactionProposer[_transactionProposer] == false &&
-                isOwner[_transactionProposer] == false,
+            _transactionProposer != address(0) &&
+                isTransactionProposer[_transactionProposer] == false &&
+                owner() != _transactionProposer,
             "is already exist in transactionProposers or is the owner"
         );
         isTransactionProposer[_transactionProposer] = true;
         transactionProposers.push(_transactionProposer);
+
+        emit AddTransactionProposer(_transactionProposer);
     }
 
     function removeTransactionProposer(
@@ -94,17 +88,8 @@ contract MultiProposerableTransactionExecutor {
             }
         }
         transactionProposers.pop();
-    }
 
-    function setOwner(address _owner) public onlyOwner {
-        require(
-            isTransactionProposer[_owner] == false && isOwner[_owner] == false,
-            "is already exist in transactionProposers or is the owner"
-        );
-
-        isOwner[owner] = false;
-        isOwner[_owner] = true;
-        owner = _owner;
+        emit RemoveTransactionProposer(_transactionProposer);
     }
 
     function proposeTransaction(
@@ -115,13 +100,7 @@ contract MultiProposerableTransactionExecutor {
         uint txIndex = transactions.length;
 
         transactions.push(
-            Transaction({
-                to: _to,
-                value: _value,
-                data: _data,
-                executed: false,
-                numConfirmations: 0
-            })
+            Transaction({to: _to, value: _value, data: _data, executed: false})
         );
 
         emit ProposeTransaction(msg.sender, txIndex, _to, _value, _data);
@@ -131,6 +110,11 @@ contract MultiProposerableTransactionExecutor {
         uint _txIndex
     ) public onlyOwner txExists(_txIndex) notExecuted(_txIndex) {
         Transaction storage transaction = transactions[_txIndex];
+
+        require(
+            transaction.value <= address(this).balance,
+            "contract balance is not enough"
+        );
 
         transaction.executed = true;
 
@@ -146,9 +130,13 @@ contract MultiProposerableTransactionExecutor {
         address _target,
         address _owner
     ) public onlyOwner {
+        require(_owner != address(0), "_owner can't be 0.");
+
         ITransferOwnership target = ITransferOwnership(_target);
 
         target.transferOwnership(_owner);
+
+        emit TransferTargetOwnership(_target, _owner);
     }
 
     function getTransactionProposers() public view returns (address[] memory) {
@@ -164,13 +152,7 @@ contract MultiProposerableTransactionExecutor {
     )
         public
         view
-        returns (
-            address to,
-            uint value,
-            bytes memory data,
-            bool executed,
-            uint numConfirmations
-        )
+        returns (address to, uint value, bytes memory data, bool executed)
     {
         Transaction storage transaction = transactions[_txIndex];
 
@@ -178,8 +160,7 @@ contract MultiProposerableTransactionExecutor {
             transaction.to,
             transaction.value,
             transaction.data,
-            transaction.executed,
-            transaction.numConfirmations
+            transaction.executed
         );
     }
 }
