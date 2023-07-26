@@ -99,12 +99,12 @@ contract MultiProposerableTransactionExecutor is Ownable {
         transaction.executed = true;
 
         (bool success, ) = transaction.to.call(transaction.data);
-        if (!success) {
+        if (success) {
+            emit ExecuteTransaction(msg.sender, _txIndex);
+        } else {
             transaction.failed = true;
             emit ExecuteTransactionFailed(msg.sender, _txIndex);
         }
-
-        emit ExecuteTransaction(msg.sender, _txIndex);
     }
 
     function transferTargetOwnership(
