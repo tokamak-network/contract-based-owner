@@ -8,7 +8,6 @@ interface ITransferOwnership {
 }
 
 contract MultiProposerableTransactionExecutor is Ownable {
-    event Deposit(address indexed sender, uint256 amount, uint256 balance);
     event ProposeTransaction(
         address indexed transactionProposer,
         uint256 indexed txIndex,
@@ -38,7 +37,7 @@ contract MultiProposerableTransactionExecutor is Ownable {
 
     function addTransactionProposer(
         address _transactionProposer
-    ) public onlyOwner {
+    ) external onlyOwner {
         require(
             _transactionProposer != address(0) &&
                 isTransactionProposer[_transactionProposer] == false &&
@@ -53,7 +52,7 @@ contract MultiProposerableTransactionExecutor is Ownable {
 
     function removeTransactionProposer(
         address _transactionProposer
-    ) public onlyOwner {
+    ) external onlyOwner {
         require(
             isTransactionProposer[_transactionProposer] == true,
             "is not exist in transactionProposers"
@@ -73,7 +72,7 @@ contract MultiProposerableTransactionExecutor is Ownable {
         emit RemoveTransactionProposer(_transactionProposer);
     }
 
-    function proposeTransaction(address _to, bytes memory _data) public {
+    function proposeTransaction(address _to, bytes memory _data) external {
         require(
             owner() == msg.sender || isTransactionProposer[msg.sender],
             "not owner or not transactionProposer"
@@ -91,7 +90,7 @@ contract MultiProposerableTransactionExecutor is Ownable {
         emit ProposeTransaction(msg.sender, txIndex, _to, _data);
     }
 
-    function executeTransaction(uint256 _txIndex) public onlyOwner {
+    function executeTransaction(uint256 _txIndex) external onlyOwner {
         require(_txIndex < transactions.length, "tx does not exist");
         require(!transactions[_txIndex].executed, "tx already executed");
 
@@ -103,17 +102,15 @@ contract MultiProposerableTransactionExecutor is Ownable {
         if (!success) {
             transaction.failed = true;
             emit ExecuteTransactionFailed(msg.sender, _txIndex);
-            revert("tx failed");
         }
 
-        transaction.failed = false;
         emit ExecuteTransaction(msg.sender, _txIndex);
     }
 
     function transferTargetOwnership(
         address _target,
         address _owner
-    ) public onlyOwner {
+    ) external onlyOwner {
         require(_owner != address(0), "_owner can't be 0");
 
         ITransferOwnership target = ITransferOwnership(_target);
@@ -123,18 +120,22 @@ contract MultiProposerableTransactionExecutor is Ownable {
         emit TransferTargetOwnership(_target, _owner);
     }
 
-    function getTransactionProposers() public view returns (address[] memory) {
+    function getTransactionProposers()
+        external
+        view
+        returns (address[] memory)
+    {
         return transactionProposers;
     }
 
-    function getTransactionCount() public view returns (uint256) {
+    function getTransactionCount() external view returns (uint256) {
         return transactions.length;
     }
 
     function getTransaction(
         uint256 _txIndex
     )
-        public
+        external
         view
         returns (address to, bytes memory data, bool executed, bool failed)
     {
