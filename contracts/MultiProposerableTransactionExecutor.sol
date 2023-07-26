@@ -13,7 +13,6 @@ contract MultiProposerableTransactionExecutor is Ownable {
         address indexed transactionProposer,
         uint256 indexed txIndex,
         address indexed to,
-        uint256 value,
         bytes data
     );
     event ExecuteTransaction(address indexed owner, uint256 indexed txIndex);
@@ -30,17 +29,12 @@ contract MultiProposerableTransactionExecutor is Ownable {
 
     struct Transaction {
         address to;
-        uint256 value;
         bytes data;
         bool executed;
         bool failed;
     }
 
     Transaction[] public transactions;
-
-    receive() external payable {
-        emit Deposit(msg.sender, msg.value, address(this).balance);
-    }
 
     function addTransactionProposer(
         address _transactionProposer
@@ -79,29 +73,22 @@ contract MultiProposerableTransactionExecutor is Ownable {
         emit RemoveTransactionProposer(_transactionProposer);
     }
 
-    function proposeTransaction(
-        address _to,
-        uint256 _value,
-        bytes memory _data
-    ) public {
+    function proposeTransaction(address _to, bytes memory _data) public {
         require(
             owner() == msg.sender || isTransactionProposer[msg.sender],
             "not owner or not transactionProposer"
         );
 
+        require(_to != address(0), "_to can't be zero address");
+        require(_data.length != 0, "_data must be exist");
+
         uint256 txIndex = transactions.length;
 
         transactions.push(
-            Transaction({
-                to: _to,
-                value: _value,
-                data: _data,
-                executed: false,
-                failed: false
-            })
+            Transaction({to: _to, data: _data, executed: false, failed: false})
         );
 
-        emit ProposeTransaction(msg.sender, txIndex, _to, _value, _data);
+        emit ProposeTransaction(msg.sender, txIndex, _to, _data);
     }
 
     function executeTransaction(uint256 _txIndex) public onlyOwner {
@@ -112,9 +99,7 @@ contract MultiProposerableTransactionExecutor is Ownable {
 
         transaction.executed = true;
 
-        (bool success, ) = transaction.to.call{value: transaction.value}(
-            transaction.data
-        );
+        (bool success, ) = transaction.to.call(transaction.data);
         if (!success) {
             transaction.failed = true;
             emit ExecuteTransactionFailed(msg.sender, _txIndex);
@@ -151,19 +136,12 @@ contract MultiProposerableTransactionExecutor is Ownable {
     )
         public
         view
-        returns (
-            address to,
-            uint256 value,
-            bytes memory data,
-            bool executed,
-            bool failed
-        )
+        returns (address to, bytes memory data, bool executed, bool failed)
     {
         Transaction storage transaction = transactions[_txIndex];
 
         return (
             transaction.to,
-            transaction.value,
             transaction.data,
             transaction.executed,
             transaction.failed
