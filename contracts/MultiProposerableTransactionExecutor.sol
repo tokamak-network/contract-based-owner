@@ -130,7 +130,7 @@ contract MultiProposerableTransactionExecutor is Ownable {
         address _target,
         address _owner
     ) public onlyOwner {
-        require(_owner != address(0), "_owner can't be 0.");
+        require(_owner != address(0), "_owner can't be 0");
 
         ITransferOwnership target = ITransferOwnership(_target);
 
