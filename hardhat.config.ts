@@ -23,7 +23,9 @@ const config: HardhatUserConfig = {
   },
   etherscan: {
     apiKey: {
+      mainnet: String(process.env.ETHERSCAN_API_KEY),
       goerli: String(process.env.ETHERSCAN_API_KEY),
+      goerli_nightly: String(process.env.ETHERSCAN_API_KEY),
     },
   },
   paths: {
