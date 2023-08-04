@@ -6,7 +6,7 @@ import * as dotenv from "dotenv";
 dotenv.config();
 
 const config: HardhatUserConfig = {
-  solidity: "0.8.18",
+  solidity: "0.8.17",
   networks: {
     mainnet: {
       url: "https://rpc.tokamak.network",
@@ -20,6 +20,18 @@ const config: HardhatUserConfig = {
       url: "https://goerli.rpc.tokamak.network",
       accounts: [`${process.env.PRIVATE_KEY}`],
     },
+    titan: {
+      url: "https://rpc.titan.tokamak.network",
+      accounts: [`${process.env.PRIVATE_KEY}`],
+    },
+    titan_goerli: {
+      url: "https://rpc.titan-goerli.tokamak.network",
+      accounts: [`${process.env.PRIVATE_KEY}`],
+    },
+    titan_goerli_nightly: {
+      url: "https://rpc.titan-goerli-nightly.tokamak.network",
+      accounts: [`${process.env.PRIVATE_KEY}`],
+    }
   },
   etherscan: {
     apiKey: {

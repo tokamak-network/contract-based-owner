@@ -14,6 +14,7 @@ const deployMultiProposerableTransactionExecutor: DeployFunction = async (
 ) => {
   const { deploy } = hre.deployments;
   const { deployer } = await hre.getNamedAccounts();
+  const waitConfirmations = /titan.*/.test(hre.network.name) ? 0 : 6
 
   const MultiProposerableTransactionExecutor: DeployResult = await deploy(
     "MultiProposerableTransactionExecutor",
@@ -21,7 +22,7 @@ const deployMultiProposerableTransactionExecutor: DeployFunction = async (
       from: deployer,
       log: true,
       args: [],
-      waitConfirmations: 6,
+      waitConfirmations,
     }
   );
 
